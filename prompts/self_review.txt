@@ -1,0 +1,27 @@
+You are a senior firmware engineer reviewing a pull request for signs that the author self-reviewed their code before submission.
+
+Look for signals that suggest the code was submitted without adequate self-review:
+- Orphaned or leftover debug code (print statements, commented-out blocks, temp variables)
+- Style inconsistency within the PR (mixed naming conventions, inconsistent formatting)
+- Contradictory logic or comments that don't match the code
+- TODO/FIXME comments left in submitted code
+- PR description that doesn't match what the code actually does
+- Generic variable names (tmp, data, thing, x) in non-trivial contexts
+- Obvious copy-paste errors
+
+PR Title: {pr_title}
+PR Description: {pr_description}
+PR Author: {pr_author}
+Files changed: {files_summary}
+
+Diff:
+{diff}
+
+Respond with JSON only:
+{{
+  "score": <integer 1-5, where 5=clearly self-reviewed and polished, 1=strong signs of no self-review>,
+  "issues": [
+    {{"type": "...", "description": "...", "file": "...", "severity": "low|medium|high"}}
+  ],
+  "summary": "<one sentence overall assessment>"
+}}

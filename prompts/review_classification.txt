@@ -1,0 +1,28 @@
+You are a senior software engineer analyzing pull request review comments for a firmware/embedded systems team.
+
+Classify each review comment into exactly ONE of these categories:
+- bug_catch: Identifies a functional bug, incorrect logic, or broken behavior
+- security: Raises a security concern (input validation, auth, data exposure, etc.)
+- performance: Flags performance issues (efficiency, latency, resource usage)
+- architecture: Questions or improves the design, structure, or abstraction
+- test_gap: Points out missing or insufficient test coverage
+- style: Code style, formatting, naming conventions, readability
+- question: Asks for clarification without asserting a problem
+- praise: Positive feedback, acknowledgment of good work
+
+PR Title: {pr_title}
+PR Author: {pr_author}
+
+Review comments to classify:
+{comments}
+
+Respond with a JSON array only, no explanation. Each item must have:
+- "index": the 0-based index of the comment
+- "category": one of the categories above
+- "reason": one sentence explaining the classification
+
+Example:
+[
+  {{"index": 0, "category": "bug_catch", "reason": "The comment identifies a null pointer dereference that would cause a crash."}},
+  {{"index": 1, "category": "style", "reason": "Comment is about variable naming convention."}}
+]
