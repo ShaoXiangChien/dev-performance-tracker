@@ -9,9 +9,10 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-import anthropic
+from openai import OpenAI
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 SKIPPED_NO_DIFF = {
     "score": None,
@@ -30,15 +31,18 @@ def _load_prompt(name: str) -> str:
     return (PROMPTS_DIR / f"{name}.txt").read_text()
 
 
-def _call_claude(client, model: str, prompt: str) -> tuple[str, dict]:
+def _call_llm(client, model: str, prompt: str) -> tuple[str, dict]:
     """Returns (raw_text, usage_dict)."""
-    msg = client.messages.create(
+    response = client.chat.completions.create(
         model=model,
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
-    usage = {"input": msg.usage.input_tokens, "output": msg.usage.output_tokens}
-    return msg.content[0].text, usage
+    usage = {
+        "input": response.usage.prompt_tokens if response.usage else 0,
+        "output": response.usage.completion_tokens if response.usage else 0,
+    }
+    return response.choices[0].message.content, usage
 
 
 def _parse_json_response(text: str):
@@ -51,7 +55,7 @@ def _parse_json_response(text: str):
 
 
 def _classify_review_comments(client, model: str, pr: dict) -> tuple[dict, dict]:
-    """Classify all review comments for a PR. Returns (result, usage)."""
+    """Classify all review comments for a PR using OpenRouter. Returns (result, usage)."""
     all_comments = pr.get("review_comments", []) + pr.get("issue_comments", [])
     non_trivial = [
         c for c in all_comments
@@ -72,7 +76,7 @@ def _classify_review_comments(client, model: str, pr: dict) -> tuple[dict, dict]
         "comments": comments_text,
     })
 
-    raw, usage = _call_claude(client, model, prompt)
+    raw, usage = _call_llm(client, model, prompt)
     classifications_raw = _parse_json_response(raw)
 
     classifications = []
@@ -118,7 +122,7 @@ def _analyze_quality_dimension(
     }
 
     prompt = _load_prompt(dimension).format_map(format_args)
-    raw, usage = _call_claude(client, model, prompt)
+    raw, usage = _call_llm(client, model, prompt)
     result = _parse_json_response(raw)
     result.setdefault("skipped_reason", None)
     return result, usage
@@ -127,18 +131,18 @@ def _analyze_quality_dimension(
 def analyze_prs(
     prs: list,
     api_key: str,
-    model: str = "claude-sonnet-4-6",
+    model: str = "qwen/qwen3.6-plus:free",
     enable_firmware: bool = True,
     progress_callback=None,
     output_path: str = "data/llm_analysis.json",
 ) -> dict:
     """
-    Run LLM analysis on a list of PR dicts.
+    Run LLM analysis on a list of PR dicts via OpenRouter.
     Returns analysis dict and writes to output_path.
 
     progress_callback(current, total, pr_number, stage) — called during processing.
     """
-    client = anthropic.Anthropic(api_key=api_key)
+    client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key)
     total = len(prs)
     results = []
     total_tokens = {"input": 0, "output": 0}
