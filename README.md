@@ -43,8 +43,10 @@ GITHUB_TOKEN=ghp_your_token_here     # Read-only PAT is sufficient
 GITHUB_REPO=owner/repo-name          # e.g. myorg/firmware
 
 # Required for Step 3 (LLM Analysis)
-ANTHROPIC_API_KEY=sk-ant-your_key_here
+OPENROUTER_API_KEY=sk-or-v1-your_key_here
 ```
+
+Get a free OpenRouter key at https://openrouter.ai/keys — no credit card required for free-tier models.
 
 The app also accepts these values directly in the UI — the `.env` values just pre-fill the input fields.
 
@@ -75,7 +77,7 @@ Rate limit: 5,000 requests/hour for authenticated PATs — enough for ~1,000 PRs
 
 ## LLM Analysis
 
-Step 3 uses the [Anthropic Claude API](https://www.anthropic.com) to:
+Step 3 uses [OpenRouter](https://openrouter.ai) (free-tier models) to:
 
 - **Classify review comments** into 8 categories: `bug_catch`, `security`, `performance`, `architecture`, `test_gap`, `style`, `question`, `praise`
 - **Score code quality** across 3 dimensions (requires diff patches):
@@ -83,9 +85,18 @@ Step 3 uses the [Anthropic Claude API](https://www.anthropic.com) to:
   - **Self-review signal** — flags signs the author didn't review before submitting
   - **Firmware concerns** — heap allocation, resource leaks, busy-waits, non-atomic shared state
 
+**Available free models (selectable in the UI):**
+
+| Model ID | Strengths |
+|---|---|
+| `qwen/qwen3.6-plus:free` | SOTA coding, 1M context |
+| `deepseek/deepseek-r1:free` | Strong reasoning |
+| `google/gemma-3-27b-it:free` | Fast, reliable |
+| `meta-llama/llama-3.3-70b-instruct:free` | General purpose |
+
 > **Note:** `pr_raw.json` does **not** include diff patches by default. To enable code quality scoring, go to Step 1 and check **"Include diff patches"** before fetching. This doubles the API calls per PR (~2x rate limit usage).
 
-Estimated cost with Claude Sonnet: **~$0.02–0.05 per PR**.
+**Cost:** Free-tier models have no cost. Free tier allows 20 requests/min and 50 requests/day (1,000/day with any paid credits on the account).
 
 ---
 

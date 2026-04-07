@@ -312,14 +312,14 @@ def page_metrics():
     # Top-level KPI row
     # ------------------------------------------------------------------
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total PRs", team.get("total_prs", "—"))
-    col2.metric("Merged PRs", team.get("merged_prs", "—"))
+    col1.metric("Total PRs", metrics_data.get("pr_count", "—"))
+    col2.metric("Merged PRs", metrics_data.get("merged_count", "—"))
     review_coverage = team.get("review_coverage_pct")
     col3.metric(
         "Review Coverage %",
         f"{review_coverage:.1f}%" if review_coverage is not None else "—",
     )
-    median_ct = team.get("median_cycle_time_h")
+    median_ct = team.get("cycle_time_p50")
     col4.metric(
         "Median Cycle Time",
         f"{median_ct:.1f}h" if median_ct is not None else "—",
@@ -390,7 +390,7 @@ def page_metrics():
                 merged = d.get("prs_merged", 0)
                 merge_rate = f"{merged / authored * 100:.0f}%" if authored > 0 else "—"
                 avg_ct = d.get("avg_cycle_time_h")
-                net_lines = d.get("total_additions", 0) - d.get("total_deletions", 0)
+                net_lines = d.get("net_lines", 0)
                 summary_rows.append(
                     {
                         "Developer": dev,
@@ -425,10 +425,17 @@ def page_metrics():
         ]
         df_rv = pd.DataFrame(review_rows).sort_values("PRs Reviewed", ascending=True)
         if not df_rv.empty:
+            df_rv_melted = df_rv.melt(
+                id_vars="Developer",
+                value_vars=["PRs Reviewed", "Comments Given"],
+                var_name="Metric",
+                value_name="Count",
+            )
             fig = px.bar(
-                df_rv,
+                df_rv_melted,
                 y="Developer",
-                x=["PRs Reviewed", "Comments Given"],
+                x="Count",
+                color="Metric",
                 orientation="h",
                 barmode="group",
                 title="Review Load by Developer",
@@ -459,7 +466,7 @@ def page_metrics():
         unreviewed = [
             p
             for p in metrics_data.get("by_pr", [])
-            if p.get("merged") and not p.get("reviewer_count", 0)
+            if p.get("merged") and not p.get("human_reviewers")
         ]
         if unreviewed:
             st.subheader("Unreviewed Merged PRs")
@@ -485,7 +492,7 @@ def page_metrics():
     # Tab 3 - Collaboration
     # ------------------------------------------------------------------
     with tab3:
-        network = metrics_data.get("review_network", [])
+        network = team.get("review_network", [])
         if network:
             fig = _build_review_network_fig(network, by_dev)
             if fig:
@@ -514,7 +521,7 @@ def page_metrics():
 # ---------------------------------------------------------------------------
 def page_llm():
     st.title("Step 3: LLM Analysis")
-    st.markdown("Classify review comments and score code quality using Claude.")
+    st.markdown("Classify review comments and score code quality using OpenRouter.")
 
     # Auto-load
     if "raw_prs" not in st.session_state:
@@ -534,15 +541,24 @@ def page_llm():
     # ------------------------------------------------------------------
     with tab1:
         st.text_input(
-            "Anthropic API Key",
+            "OpenRouter API Key",
             type="password",
-            value=os.getenv("ANTHROPIC_API_KEY", ""),
+            value=os.getenv("OPENROUTER_API_KEY", ""),
             key="anthropic_key",
         )
         st.selectbox(
             "Model",
-            ["claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+            [
+                "qwen/qwen3.6-plus:free",
+                "deepseek/deepseek-r1:free",
+                "google/gemma-3-27b-it:free",
+                "meta-llama/llama-3.3-70b-instruct:free",
+            ],
             key="llm_model",
+        )
+        st.caption(
+            "All models above are free-tier on OpenRouter. "
+            "Get your key at [openrouter.ai](https://openrouter.ai/keys)."
         )
         st.checkbox(
             "Enable firmware concerns analysis",
@@ -552,10 +568,7 @@ def page_llm():
 
         prs = st.session_state["raw_prs"]
         n_prs = len(prs)
-        st.markdown(
-            f"**Cost estimate:** ~${n_prs * 0.03:.2f}–${n_prs * 0.05:.2f} estimated (Sonnet) "
-            f"for {n_prs} PRs"
-        )
+        st.info(f"Free-tier models have no cost. {n_prs} PRs queued for analysis.")
 
         # Always show diff availability warning
         has_diffs = any(p.get("files") for p in prs)
@@ -602,11 +615,12 @@ def page_llm():
                     progress_bar.progress(1.0)
                     status_text.empty()
                     total_tok = result.get("total_tokens", {})
-                    st.success(
-                        f"Analysis complete! "
-                        f"Tokens used: {total_tok.get('input', 0):,} input / "
-                        f"{total_tok.get('output', 0):,} output → saved to data/llm_analysis.json"
+                    tok_info = (
+                        f" | Tokens: {total_tok.get('input', 0):,} in / {total_tok.get('output', 0):,} out"
+                        if total_tok.get("input")
+                        else ""
                     )
+                    st.success(f"Analysis complete{tok_info} → saved to data/llm_analysis.json")
                     st.rerun()
                 except Exception as e:
                     st.error(f"LLM analysis failed: {e}")
