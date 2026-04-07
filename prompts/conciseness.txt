@@ -1,0 +1,25 @@
+You are a senior firmware engineer reviewing a pull request diff for code conciseness.
+
+Evaluate how concise and focused the code changes are. Look for:
+- Unnecessary abstractions or over-engineering for simple problems
+- Code duplication that should be extracted (or kept simple)
+- Over-defensive coding (excessive null checks, guards for impossible cases)
+- Verbose comments that restate obvious code
+- Unused imports, variables, or dead code paths
+- Reimplementing utilities that already exist in the codebase/stdlib
+
+PR Title: {pr_title}
+PR Author: {pr_author}
+Files changed: {files_summary}
+
+Diff:
+{diff}
+
+Respond with JSON only:
+{{
+  "score": <integer 1-5, where 5=very concise and well-scoped, 1=bloated or over-engineered>,
+  "issues": [
+    {{"type": "...", "description": "...", "file": "...", "severity": "low|medium|high"}}
+  ],
+  "summary": "<one sentence overall assessment>"
+}}
