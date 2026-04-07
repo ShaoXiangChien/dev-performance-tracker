@@ -1,0 +1,911 @@
+[
+  {
+    "number": 19,
+    "title": "feat: add POST /families/leave and character_color to user profile",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-04-05T17:49:56Z",
+    "merged_at": "2026-04-05T18:41:01Z",
+    "closed_at": "2026-04-05T18:41:01Z",
+    "base_branch": "main",
+    "head_branch": "feat/leave-family-and-character-color",
+    "additions": 259,
+    "deletions": 3,
+    "changed_files": 14,
+    "commits": 1,
+    "cycle_time_h": 0.8513888888888889,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 18,
+    "title": "Feat/apn merge to main",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-04-05T16:41:49Z",
+    "merged_at": "2026-04-05T16:46:31Z",
+    "closed_at": "2026-04-05T16:46:31Z",
+    "base_branch": "main",
+    "head_branch": "feat/APN-merge-to-main",
+    "additions": 683,
+    "deletions": 6,
+    "changed_files": 17,
+    "commits": 9,
+    "cycle_time_h": 0.07833333333333334,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 17,
+    "title": "feat: APNs push notifications and voice message wake-up",
+    "author": "kypkk",
+    "state": "closed",
+    "merged": false,
+    "draft": false,
+    "created_at": "2026-04-05T03:15:31Z",
+    "merged_at": null,
+    "closed_at": "2026-04-05T16:40:53Z",
+    "base_branch": "main",
+    "head_branch": "feat/APNS_With_Audio_URL",
+    "additions": 664,
+    "deletions": 6,
+    "changed_files": 16,
+    "commits": 6,
+    "cycle_time_h": null,
+    "first_review_lag_h": 0.08277777777777778,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-04-05T03:20:29Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": null,
+        "created_at": "2026-04-05T03:20:27Z",
+        "body": "SQLAlchemy boolean comparisons should use `.is_(True)`/`.is_(False)` rather than `== True` (and avoid `# noqa: E712`). This produces clearer SQL and avoids lint suppression.\n```suggestion\n                User.notification_enabled.is_(True),\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": null,
+        "created_at": "2026-04-05T03:20:28Z",
+        "body": "`push_environment` is nullable (and will be NULL for existing users after migration). Comparing with `!= settings.APNS_ENVIRONMENT` will skip those users entirely, so escalation pushes may silently never send until every client re-registers. Consider treating NULL as a default (e.g., assume current `APNS_ENVIRONMENT`) or backfilling existing rows in the migration.\n```suggestion\n            # Skip tokens registered for a different APNs environment.\n            # Treat NULL as the current environment so legacy rows created\n            # before push_environment existed still receive escalation pushes.\n            if (\n                helper.push_environment is not None\n                and helper.push_environment != settings.APNS_ENVIRONMENT\n            ):\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 534,
+        "created_at": "2026-04-05T03:20:28Z",
+        "body": "The comment calls this a \u201cCritical Alert\u201d, but the payload isn't a critical alert per Apple spec (critical alerts require a special entitlement and `aps.sound` as a critical-sound dictionary). Either adjust the payload to a real critical alert or update the comment to avoid misleading future changes."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": null,
+        "created_at": "2026-04-05T03:20:28Z",
+        "body": "`push_environment` can be NULL for existing users; this strict equality check will prevent sending any push to those tokens. Consider treating NULL as the default environment (or migrate/backfill) so existing registered tokens still receive pushes.\n```suggestion\n        target_push_environment = (\n            target.push_environment\n            if target.push_environment is not None\n            else settings.APNS_ENVIRONMENT\n        )\n        if target_push_environment == settings.APNS_ENVIRONMENT:\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 554,
+        "created_at": "2026-04-05T03:20:28Z",
+        "body": "`aps.sound` is being set to `audio_url`, but APNs/iOS interpret `aps.sound` as a bundled sound name (or critical-sound dict), not a remote URL. Since `audio_url` is already included as a custom field, keep `aps.sound` as a valid value (e.g., \"default\") and let the iOS Notification Service Extension read `audio_url` from the custom field. Also, NSE execution requires `aps[\"mutable-content\"] = 1`; without it, the extension won\u2019t run to download/attach audio.\n```suggestion\n                    \"sound\": \"default\",\n                    \"content-available\": 1,\n                    \"mutable-content\": 1,\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/schemas/auth.py",
+        "line": null,
+        "created_at": "2026-04-05T03:20:28Z",
+        "body": "Defaulting `environment` to \"sandbox\" means older clients (or any client that omits the field) will register as sandbox even in production, and then will be skipped by the server-side `push_environment` checks. Consider making this field required, or default it based on server config, to avoid silently disabling pushes in production.\n```suggestion\n    environment: Literal[\"sandbox\", \"production\"]\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/core/apns.py",
+        "line": 70,
+        "created_at": "2026-04-05T03:20:29Z",
+        "body": "`APNS_ENVIRONMENT` is a free-form string; any typo will silently select the sandbox host. Consider constraining it (e.g., `Literal[\"sandbox\",\"production\"]` in Settings or a validator) and failing fast on invalid values so production doesn\u2019t accidentally send to the wrong APNs endpoint."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/core/apns.py",
+        "line": 70,
+        "created_at": "2026-04-05T03:20:29Z",
+        "body": "The APNs clients are created without explicit timeouts. APNs calls in Celery tasks can then block longer than desired under network issues. Consider configuring a reasonable `httpx.Timeout` (and optionally limits/retries) when constructing the clients."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 172,
+        "created_at": "2026-04-05T03:20:29Z",
+        "body": "`apns.send_sync()` does network I/O while the async DB session is still open, which can unnecessarily hold a DB connection for the duration of APNs sends. Consider fetching the helper tokens first, closing the session, then sending pushes, and finally opening a new session only for stale-token cleanup (or otherwise ensure DB resources aren\u2019t held during external calls)."
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-04-05T16:40:53Z",
+        "body": "Thanks! I've created another branch from main to merge this and fix something there safely. Closing the PR"
+      }
+    ]
+  },
+  {
+    "number": 16,
+    "title": "feat: replace current_streak with solo_streak and inclusive_streak",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-04-04T09:01:10Z",
+    "merged_at": "2026-04-04T19:11:10Z",
+    "closed_at": "2026-04-04T19:11:10Z",
+    "base_branch": "main",
+    "head_branch": "feat/streak-split",
+    "additions": 81,
+    "deletions": 16,
+    "changed_files": 11,
+    "commits": 1,
+    "cycle_time_h": 10.166666666666666,
+    "first_review_lag_h": 0.06333333333333334,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-04-04T09:04:58Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "alembic/versions/31a2f29f722b_replace_current_streak_with_dual_streaks.py",
+        "line": 37,
+        "created_at": "2026-04-04T09:04:58Z",
+        "body": "In `upgrade()`, the columns are added as nullable and only later backfilled + altered to NOT NULL. If the app (or any background job) writes to `users` while this migration is running, a row inserted between `add_column` and the `UPDATE` could keep NULLs and cause the `alter_column(..., nullable=False)` step to fail. Consider adding the columns with a temporary `server_default=0` (and optionally `nullable=False` immediately), then backfill `inclusive_streak` from `current_streak`, and finally drop the server default if you don't want it long-term.\n```suggestion\n    # 1. Add new columns with temporary defaults so concurrent inserts cannot create NULLs\n    op.add_column(\n        \"users\",\n        sa.Column(\n            \"solo_streak\",\n            sa.Integer(),\n            nullable=False,\n            server_default=sa.text(\"0\"),\n        ),\n    )\n    op.add_column(\n        \"users\",\n        sa.Column(\n            \"inclusive_streak\",\n            sa.Integer(),\n            nullable=False,\n            server_default=sa.text(\"0\"),\n        ),\n    )\n\n    # 2. Preserve existing streak data from current_streak\n    op.execute(\"UPDATE users SET inclusive_streak = current_streak\")\n\n    # 3. Drop temporary defaults now that data has been backfilled\n    op.alter_column(\"users\", \"solo_streak\", server_default=None)\n    op.alter_column(\"users\", \"inclusive_streak\", server_default=None)\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "alembic/versions/31a2f29f722b_replace_current_streak_with_dual_streaks.py",
+        "line": 46,
+        "created_at": "2026-04-04T09:04:58Z",
+        "body": "The same nullable\u2192backfill\u2192NOT NULL pattern in `downgrade()` has the same risk if writes happen during the downgrade (rows could be inserted with NULL `current_streak` before it\u2019s altered to NOT NULL). Consider using a temporary `server_default` during the downgrade as well, so concurrent inserts can\u2019t violate the new constraint.\n```suggestion\n    op.add_column(\n        \"users\",\n        sa.Column(\n            \"current_streak\",\n            sa.Integer(),\n            nullable=True,\n            server_default=sa.text(\"0\"),\n        ),\n    )\n    op.execute(\"UPDATE users SET current_streak = inclusive_streak\")\n    op.alter_column(\"users\", \"current_streak\", existing_type=sa.Integer(), nullable=False)\n    op.alter_column(\"users\", \"current_streak\", existing_type=sa.Integer(), server_default=None)\n```"
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-04-04T19:11:13Z",
+        "body": "Everything looks good to me. Thanks! Merging"
+      }
+    ]
+  },
+  {
+    "number": 15,
+    "title": "feat: Add Google Sign-In and Apple Sign-In with token revocation",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-29T00:53:37Z",
+    "merged_at": "2026-03-29T00:58:50Z",
+    "closed_at": "2026-03-29T00:58:50Z",
+    "base_branch": "main",
+    "head_branch": "feat/social-auth",
+    "additions": 798,
+    "deletions": 141,
+    "changed_files": 11,
+    "commits": 5,
+    "cycle_time_h": 0.08694444444444445,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 13,
+    "title": "feat: Wake Event API \u2014 State Machine, Celery Scheduling & Idempotency",
+    "author": "kypkk",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-28T09:07:54Z",
+    "merged_at": "2026-03-28T19:49:01Z",
+    "closed_at": "2026-03-28T19:49:01Z",
+    "base_branch": "main",
+    "head_branch": "feat/wakeEvent",
+    "additions": 757,
+    "deletions": 38,
+    "changed_files": 6,
+    "commits": 3,
+    "cycle_time_h": 10.685277777777777,
+    "first_review_lag_h": 0.07972222222222222,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-28T09:12:41Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 54,
+        "created_at": "2026-03-28T09:12:40Z",
+        "body": "The helper is documented as a \u201cBest-effort revoke\u201d, but any Redis connection error / Celery control error will currently propagate and turn a successful state transition into a 500 after the DB commit. Consider catching/logging exceptions inside _revoke_job (and potentially _save_job_id) so these remain truly best-effort and don\u2019t break the API after persisting state."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_wake_events.py",
+        "line": 410,
+        "created_at": "2026-03-28T09:12:40Z",
+        "body": "PR description says wrong-owner access to /respond should return 404 (to avoid leaking resource existence), but this test now asserts 403. Either update the implementation to return 404 for non-owners and keep tests aligned, or update the PR description if 403 is the intended contract."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_wake_events.py",
+        "line": 612,
+        "created_at": "2026-03-28T09:12:40Z",
+        "body": "PR description says wrong-owner access to /verify should return 404 (to avoid leaking resource existence), but this test now asserts 403. Either update the implementation to return 404 for non-owners and keep tests aligned, or update the PR description if 403 is the intended contract."
+      },
+      {
+        "author": "Copilot",
+        "path": "alembic/versions/d4e7f2a9c1b5_add_wake_event_unique_constraints.py",
+        "line": 50,
+        "created_at": "2026-03-28T09:12:40Z",
+        "body": "Test DB setup uses `Base.metadata.create_all`, but the date-level uniqueness guard is implemented only as a raw SQL expression index in this Alembic migration. That means the Layer-2 idempotency behavior (same alarm + same day, different timestamps) won\u2019t exist in tests unless migrations are applied or the index is also represented in SQLAlchemy metadata. Consider running Alembic migrations in tests or adding an equivalent SQLAlchemy `Index(..., unique=True, ...)` so test schema matches production."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 157,
+        "created_at": "2026-03-28T09:12:40Z",
+        "body": "create_wake_event() claims idempotency for \u201csame alarm on the same calendar day\u201d, but the tests currently only cover exact timestamp duplicates. Add a test that posts two different `scheduled_time` values on the same UTC date and asserts the second call returns 200 with the original event id (exercising the functional unique index + IntegrityError path)."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 294,
+        "created_at": "2026-03-28T09:12:41Z",
+        "body": "In verify_wake_event(), the row is selected with `FOR UPDATE` even when `passed=False`, and then the function returns without committing/rolling back. This holds the row lock until the request/session ends and can block the timeout jobs (or other clients) from progressing the state machine. Consider avoiding `FOR UPDATE` for the no-op path (or explicitly `await db.rollback()` before returning) so locks are released immediately.\n```suggestion\n    if not passed:\n        # We selected the row WITH FOR UPDATE; rollback so the lock is released immediately.\n        await db.rollback()\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 134,
+        "created_at": "2026-03-28T09:12:41Z",
+        "body": "In create_wake_event(), Job A is scheduled using wake_event.id before any flush. With `mapped_column(..., default=gen_uuid)`, the UUID is typically assigned during flush/INSERT, so `wake_event.id` may still be None here, causing Celery to receive args=[None] and Redis keys like `job:respond:None`. Generate the id explicitly (e.g., set wake_event.id before add) or `await db.flush()` before scheduling so a real id is available."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 77,
+        "created_at": "2026-03-28T09:12:41Z",
+        "body": "_fetch_existing_for_date() uses `func.date(timestamptz)` which depends on the DB session timezone, but the unique index added in the migration uses `(scheduled_time AT TIME ZONE 'UTC')::date`. After an IntegrityError from that index, this query may fail to find the existing row and re-raise unexpectedly. Align the query expression with the index (use the same UTC cast) so duplicates are reliably fetched."
+      }
+    ],
+    "issue_comments": []
+  },
+  {
+    "number": 12,
+    "title": "feat: Wake Event API \u2014 State Machine, Celery Scheduling & Idempotency",
+    "author": "kypkk",
+    "state": "closed",
+    "merged": false,
+    "draft": false,
+    "created_at": "2026-03-28T08:58:32Z",
+    "merged_at": null,
+    "closed_at": "2026-03-28T09:02:07Z",
+    "base_branch": "main",
+    "head_branch": "feat/wakeEvent",
+    "additions": 755,
+    "deletions": 38,
+    "changed_files": 6,
+    "commits": 2,
+    "cycle_time_h": null,
+    "first_review_lag_h": 0.10666666666666667,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-28T09:04:56Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 131,
+        "created_at": "2026-03-28T09:04:55Z",
+        "body": "`wake_event.id` is used for Celery scheduling/Redis keying before the initial `flush()`. With SQLAlchemy `mapped_column(default=gen_uuid)`, the primary key typically isn\u2019t populated until flush/insert, so this can schedule Job A with `None` (and also do extra scheduling work on duplicate inserts that later fail). Consider flushing first to obtain the id (and to surface uniqueness violations) and only then calling `apply_async`/saving the job id, still before `commit()`."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 104,
+        "created_at": "2026-03-28T09:04:56Z",
+        "body": "`alarm_id` is used directly in a UUID-typed comparison. If a client passes a non-UUID string, Postgres will typically raise an error during query execution (500) rather than returning a clean 404. Other services (e.g., alarm_service) validate UUIDs explicitly; consider adding a `UUID(alarm_id)` guard here to return a consistent 404/422 response."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/wake_event_service.py",
+        "line": 202,
+        "created_at": "2026-03-28T09:04:56Z",
+        "body": "`wake_event_id` isn\u2019t validated before being used in a UUID-typed filter. If a client sends an invalid UUID, this can bubble up as a DB error (500). `get_wake_event()` already guards with `UUID(wake_event_id)`; recommend adding the same validation pattern in `respond_to_wake_event` (and similarly in `verify_wake_event`, `help_wake_event`, and `get_escalation_status`) to return a consistent 404.\n```suggestion\n    try:\n        wake_uuid = UUID(wake_event_id)\n    except ValueError:\n        # Maintain consistency with get_wake_event: invalid UUID \u2192 404\n        raise HTTPException(\n            status_code=status.HTTP_404_NOT_FOUND,\n            detail=\"Wake event not found\",\n        )\n\n    result = await db.execute(\n        select(WakeEvent)\n        .where(WakeEvent.id == wake_uuid)\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_wake_events.py",
+        "line": 24,
+        "created_at": "2026-03-28T09:04:56Z",
+        "body": "The PR description mentions the day-level idempotency guard (functional unique index on `(alarm_id, scheduled_time::date)`), but the test suite doesn\u2019t currently assert behavior for \u201csame alarm + same day + different timestamps\u201d. Adding a test case for that scenario would protect the intended Layer 2 behavior from regressions."
+      }
+    ],
+    "issue_comments": []
+  },
+  {
+    "number": 8,
+    "title": "feat: add S3 presigned URL upload for media files",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-27T06:49:21Z",
+    "merged_at": "2026-03-28T03:14:30Z",
+    "closed_at": "2026-03-28T03:14:30Z",
+    "base_branch": "main",
+    "head_branch": "feat/s3-media",
+    "additions": 647,
+    "deletions": 14,
+    "changed_files": 12,
+    "commits": 11,
+    "cycle_time_h": 20.419166666666666,
+    "first_review_lag_h": 0.09888888888888889,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-27T06:55:17Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/services/media_service.py",
+        "line": 76,
+        "created_at": "2026-03-27T06:55:15Z",
+        "body": "`build_object_key()` validates `ext.lower()` but then returns the key using the original `ext` casing. This can lead to inconsistent object keys (e.g., `.PNG`) and complicates downstream consumers that expect normalized extensions. Consider lowercasing the extension in the returned key once it has been validated.\n```suggestion\n    ext_lower = ext.lower()\n    if ext_lower not in ALLOWED_EXTENSIONS:\n        raise HTTPException(status_code=400, detail=\"File extension not allowed\")\n    return f\"media/{user_id}/{uuid.uuid4()}{ext_lower}\"\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/media_service.py",
+        "line": 102,
+        "created_at": "2026-03-27T06:55:16Z",
+        "body": "`create_presigned_upload_url()` uses `settings.S3_BUCKET_NAME` but the config default is an empty string. If the bucket name isn\u2019t set in an environment, this will likely raise a low-level boto/botocore error and return a 500 without a clear message. Add an explicit check that `S3_BUCKET_NAME` is configured (non-empty) and raise a clear `HTTPException` (or fail fast at startup) when it isn\u2019t."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/test_s3_health.py",
+        "line": 10,
+        "created_at": "2026-03-27T06:55:16Z",
+        "body": "The S3 client is instantiated at import time (`s3_client = get_s3_client()`), which makes the test suite more brittle (e.g., it can create the client before env vars/monkeypatches are applied and it\u2019s harder to isolate tests). Prefer creating the client inside a fixture (or inside each test) so setup/teardown and configuration are controlled by pytest."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/test_s3_health.py",
+        "line": 25,
+        "created_at": "2026-03-27T06:55:16Z",
+        "body": "The bucket creation always supplies `CreateBucketConfiguration` with a `LocationConstraint`. This fails on AWS for `us-east-1` (must omit the configuration) and can also be incompatible with some S3-compatible providers. Consider conditional logic (omit config for `us-east-1`, and/or when `S3_ENDPOINT_URL` is set) so the smoke test is portable across environments."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/schemas/media.py",
+        "line": 7,
+        "created_at": "2026-03-27T06:55:16Z",
+        "body": "The max upload size (20 MB) is hard-coded here while `app/services/media_service.py` also defines `MAX_UPLOAD_SIZE`. Keeping these in sync manually is error-prone. Consider moving this constant to a shared module (or importing from `media_service` if that won\u2019t create unwanted coupling) so validation stays consistent.\n```suggestion\nfrom app.services.media_service import MAX_UPLOAD_SIZE\n\n\nclass PresignedUrlRequest(BaseModel):\n    filename: str = Field(..., min_length=1, max_length=255)\n    content_type: str = Field(..., min_length=1, max_length=255)\n    content_length: int = Field(\n        ...,\n        gt=0,\n        le=MAX_UPLOAD_SIZE,\n        description=f\"File size in bytes (max {MAX_UPLOAD_SIZE // (1024 * 1024)} MB)\",\n    )\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/core/s3.py",
+        "line": 16,
+        "created_at": "2026-03-27T06:55:16Z",
+        "body": "`_build_s3_client()` always passes `aws_access_key_id` / `aws_secret_access_key` from settings even when they\u2019re empty strings. This prevents boto3\u2019s default credential provider chain (env/shared config/IAM role) from working and can break production deployments where credentials aren\u2019t explicitly set. Build `kwargs` so credentials are only included when non-empty (and consider supporting session tokens).\n```suggestion\n    kwargs: dict = {\n        \"service_name\": \"s3\",\n    }\n    if settings.AWS_REGION:\n        kwargs[\"region_name\"] = settings.AWS_REGION\n\n    access_key = getattr(settings, \"AWS_ACCESS_KEY_ID\", None)\n    secret_key = getattr(settings, \"AWS_SECRET_ACCESS_KEY\", None)\n    session_token = getattr(settings, \"AWS_SESSION_TOKEN\", None)\n\n    if access_key and secret_key:\n        kwargs[\"aws_access_key_id\"] = access_key\n        kwargs[\"aws_secret_access_key\"] = secret_key\n        if session_token:\n            kwargs[\"aws_session_token\"] = session_token\n```"
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-03-28T03:04:25Z",
+        "body": "Great work on completing this. I've added some additional instruction for the setup in readme. Everything else looks good to me. Thanks!\r\n\r\nMerging to main."
+      }
+    ]
+  },
+  {
+    "number": 11,
+    "title": "Feat/celery timeout jobs",
+    "author": "kypkk",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-27T20:34:30Z",
+    "merged_at": "2026-03-28T02:44:26Z",
+    "closed_at": "2026-03-28T02:44:26Z",
+    "base_branch": "main",
+    "head_branch": "feat/CeleryTimeoutJobs",
+    "additions": 519,
+    "deletions": 17,
+    "changed_files": 5,
+    "commits": 6,
+    "cycle_time_h": 6.165555555555556,
+    "first_review_lag_h": 0.07416666666666667,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-27T20:38:57Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 36,
+        "created_at": "2026-03-27T20:38:55Z",
+        "body": "_save_job_c_id() writes the Job C task id to Redis, but there is no corresponding read/use of the `job:mark_failed:{wake_event_id}` key anywhere in the codebase (search shows only this write). That makes the persistence effectively dead code and also doesn\u2019t deliver the \u201crevoke later\u201d behavior described in the PR. Either add the revoke logic (e.g., on the success_with_help path) or remove the Redis write + docstring to avoid misleading future readers."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 38,
+        "created_at": "2026-03-27T20:38:55Z",
+        "body": "Both _publish_to_family() and _save_job_c_id() create a new sync Redis client via from_url() for every call and then close it. In production this can add connection churn and latency for frequent task executions/publishes. Consider reusing a module-level Redis client/connection pool (redis-py manages pooling) or injecting a shared client so Celery workers don\u2019t rebuild pools per publish/set.\n```suggestion\n# Reuse a module-level Redis client so Celery workers don't churn connections.\n_redis_client = sync_redis.from_url(settings.REDIS_URL)\n\n\ndef _publish_to_family(family_id: str, message: dict) -> None:\n    \"\"\"Publish a WebSocket event to all connected family members via Redis.\"\"\"\n    _redis_client.publish(f\"family:{family_id}\", json.dumps(message))\n\n\ndef _save_job_c_id(wake_event_id: str, task_id: str) -> None:\n    \"\"\"Persist Job C task ID so it can be revoked on success_with_help.\"\"\"\n    _redis_client.set(\n        f\"job:mark_failed:{wake_event_id}\",\n        task_id,\n        ex=settings.ESCALATION_TIMEOUT_SECONDS + 60,  # buffer for clock skew\n    )\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/workers/test_escalation_tasks.py",
+        "line": 16,
+        "created_at": "2026-03-27T20:38:56Z",
+        "body": "The new Celery task wrappers (check_no_response/check_no_verify/mark_failed) include important behavior beyond the DB transitions: scheduling Job C via apply_async(), persisting the task id to Redis, and publishing Redis pub/sub events. The tests in this file cover _do_escalate/_do_mark_failed, but none of the wrapper-side behavior is exercised. Consider adding tests that patch mark_failed.apply_async and the Redis publish/set calls to validate scheduling/publishing happens only when the guard passes."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/api/routes/websocket.py",
+        "line": 26,
+        "created_at": "2026-03-27T20:38:56Z",
+        "body": "The websocket dependency is typed as RedisBroadcast, but get_broadcast_backend() is declared to return BroadcastBackend and websocket_service.handle_connection() also accepts BroadcastBackend. Keeping this parameter typed to the concrete RedisBroadcast makes the route harder to reuse (e.g., swapping to InMemoryBroadcast for dev/tests) and is inconsistent with the abstraction used elsewhere. Suggest importing/typing this as BroadcastBackend instead of RedisBroadcast (the runtime Depends() behavior stays the same)."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/broadcast.py",
+        "line": 187,
+        "created_at": "2026-03-27T20:38:56Z",
+        "body": "Dead socket cleanup removes broken WebSockets from the local registry, but it never unsubscribes from Redis (or deletes the channel key) when the last socket on a channel dies unexpectedly. This can leave the process permanently subscribed to channels with no active sockets, increasing Redis/pubsub load and memory usage over time. After removing dead sockets, if the channel\u2019s connection list is empty, consider deleting it and calling pubsub.unsubscribe(channel) under the same lock.\n```suggestion\n            unsubscribed = False\n            async with self._lock:\n                for ws in dead:\n                    try:\n                        self._connections.get(channel, []).remove(ws)\n                    except ValueError:\n                        # Socket might already have been removed concurrently.\n                        pass\n                # After removing dead sockets, check if the channel still has any connections.\n                remaining = self._connections.get(channel)\n                if not remaining:\n                    # Remove the empty channel entry and unsubscribe from Redis to avoid leaks.\n                    self._connections.pop(channel, None)\n                    try:\n                        await self._pubsub.unsubscribe(channel)\n                        unsubscribed = True\n                    except Exception as e:\n                        logger.exception(\n                            \"Failed to unsubscribe from Redis channel %s: %s\",\n                            channel,\n                            e,\n                        )\n            if unsubscribed:\n                logger.debug(\n                    \"Cleaned up %d dead socket(s) and unsubscribed from channel %s\",\n                    len(dead),\n                    channel,\n                )\n            else:\n                logger.debug(\n                    \"Cleaned up %d dead socket(s) on channel %s\",\n                    len(dead),\n                    channel,\n                )\n```"
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-03-28T02:44:21Z",
+        "body": "Thanks for pointing out the mistake on broadcast! I updated the tests a little to skip wake events for now. You can remove the following line in test_wake_events.py after you have implemented the service.\r\n\r\n``` python\r\npytestmark = pytest.mark.skip(reason=\"wake event API routes not yet implemented (app/api/routes/wake_events.py)\")\r\n```\r\n\r\nMerging this into main.\r\n\r\n"
+      }
+    ]
+  },
+  {
+    "number": 10,
+    "title": "feat: implement Celery escalation jobs with Redis broadcast",
+    "author": "kypkk",
+    "state": "closed",
+    "merged": false,
+    "draft": false,
+    "created_at": "2026-03-27T20:08:17Z",
+    "merged_at": null,
+    "closed_at": "2026-03-27T20:21:39Z",
+    "base_branch": "main",
+    "head_branch": "feat/CeleryTimeoutJobs",
+    "additions": 612,
+    "deletions": 20,
+    "changed_files": 5,
+    "commits": 1,
+    "cycle_time_h": null,
+    "first_review_lag_h": 0.08611111111111111,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-27T20:13:27Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/services/broadcast.py",
+        "line": 141,
+        "created_at": "2026-03-27T20:13:25Z",
+        "body": "`RedisBroadcast` is now the default backend used by the app, but the test suite only unit-tests `InMemoryBroadcast` and doesn\u2019t cover the Redis pub/sub fan-out loop (`run_subscriber`). Adding at least a small integration/unit test (with Redis service already present in CI) would help catch regressions in subscription, message decoding, and dead-socket cleanup for the production path."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 135,
+        "created_at": "2026-03-27T20:13:26Z",
+        "body": "The Celery task retries on *any* exception, including failures in scheduling Job C / saving the task id / Redis publish. Since `_do_escalate` has already committed and changed the status, a retry will hit the guard clause and skip the side-effects, which can permanently drop the `escalation_started` broadcast (and potentially the Job C scheduling if the failure happened before `apply_async`). Consider making the post-transaction side-effects best-effort (log but don\u2019t retry), or moving them into an idempotent/outbox-style mechanism so retries can safely re-attempt publishing/scheduling without being blocked by the guard clause."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 232,
+        "created_at": "2026-03-27T20:13:26Z",
+        "body": "Same retry/idempotency issue as above: `_do_mark_failed` commits the status change and user stat updates before the Redis publish. If the publish fails, `self.retry()` will run later but the guard will reject (status is already `failed`), so the `wake_resolved` broadcast may never be delivered. Handle Redis publish failures separately from the DB transition (e.g., best-effort publish or an outbox/retry mechanism that doesn\u2019t depend on the status guard).\n```suggestion\n        # Retry the DB transition on failure.\n        family_id = asyncio.run(_do_mark_failed(wake_event_id))\n    except Exception as exc:\n        logger.exception(\"mark_failed failed during state transition: wake_event=%s\", wake_event_id)\n        raise self.retry(exc=exc, countdown=10)\n\n    if family_id:\n        # Redis publish is best-effort and should not re-run the guarded DB transition.\n        try:\n            _publish_to_family(\n                family_id,\n                {\n                    \"event\": \"wake_resolved\",\n                    \"wake_event_id\": wake_event_id,\n                    \"status\": \"failed\",\n                },\n            )\n        except Exception:\n            # Log and swallow publish errors to avoid losing the wake_resolved event\n            # due to the status guard in _do_mark_failed on retry. Consider using\n            # an outbox pattern for more robust delivery semantics.\n            logger.exception(\n                \"mark_failed: failed to publish wake_resolved to family_id=%s wake_event=%s\",\n                family_id,\n                wake_event_id,\n            )\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/workers/escalation_tasks.py",
+        "line": 38,
+        "created_at": "2026-03-27T20:13:26Z",
+        "body": "`_publish_to_family` / `_save_job_c_id` create a new Redis client on every call. In a long-running Celery worker this adds avoidable overhead (connection setup / pools) and can amplify failure rates under load. Prefer a module-level Redis client (or a small helper that reuses a single connection pool) and only close it on worker shutdown.\n```suggestion\n# Reuse a single Redis client across calls to avoid connection churn in workers.\n_redis_client = sync_redis.from_url(settings.REDIS_URL)\n\n\ndef _publish_to_family(family_id: str, message: dict) -> None:\n    \"\"\"Publish a WebSocket event to all connected family members via Redis.\"\"\"\n    _redis_client.publish(f\"family:{family_id}\", json.dumps(message))\n\n\ndef _save_job_c_id(wake_event_id: str, task_id: str) -> None:\n    \"\"\"Persist Job C task ID so it can be revoked on success_with_help.\"\"\"\n    _redis_client.set(\n        f\"job:mark_failed:{wake_event_id}\",\n        task_id,\n        ex=settings.ESCALATION_TIMEOUT_SECONDS + 60,  # buffer for clock skew\n    )\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/main.py",
+        "line": 15,
+        "created_at": "2026-03-27T20:13:27Z",
+        "body": "The lifespan hook starts a background `run_subscriber()` task but never stores/cancels it on shutdown. With test fixtures using ASGITransport/TestClient (startup/shutdown per test), this can spawn many leaked subscriber tasks and/or multiple concurrent `listen()` loops against the same singleton backend. Store the created task (e.g., `app.state.redis_subscriber_task`) and cancel/await it on shutdown, and ensure the Redis connection/pubsub is closed."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/broadcast.py",
+        "line": 167,
+        "created_at": "2026-03-27T20:13:27Z",
+        "body": "`get_broadcast_backend()` is a module-level singleton and `lifespan()` starts `run_subscriber()` every time the app starts. In test runs (and any environment that instantiates the ASGI app multiple times), this can create multiple subscriber loops on the same `pubsub` object, which is not safe. Consider (a) making the backend instance app-scoped rather than module-global, and/or (b) adding an internal guard so `run_subscriber()` can only be started once per backend, plus a `close()` method to cleanly stop listening and disconnect."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/broadcast.py",
+        "line": 167,
+        "created_at": "2026-03-27T20:13:27Z",
+        "body": "The broadcast abstraction is effectively bypassed by changing `get_broadcast_backend()` to return `RedisBroadcast` and annotating the route dependency as `RedisBroadcast`. This makes it harder to swap backends (e.g., using `InMemoryBroadcast` in tests/local dev) and also exposes a method (`run_subscriber`) that isn\u2019t part of the `BroadcastBackend` interface. Prefer keeping dependency types as `BroadcastBackend` and have `get_broadcast_backend()` return the interface (with a no-op `run_subscriber()` on the in-memory backend, or a separate startup hook specifically for Redis)."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/api/routes/websocket.py",
+        "line": 25,
+        "created_at": "2026-03-27T20:13:27Z",
+        "body": "The dependency type was narrowed to `RedisBroadcast`, but `websocket_service.handle_connection` is written against the `BroadcastBackend` abstraction. Keeping the parameter annotated as `BroadcastBackend` (and importing that type) helps preserve the swappable-backend design and makes dependency overrides (e.g., `InMemoryBroadcast` in tests) more straightforward."
+      }
+    ],
+    "issue_comments": []
+  },
+  {
+    "number": 9,
+    "title": "feat: replace InMemoryBroadcast with RedisBroadcast for cross-process pub/sub",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-27T19:25:28Z",
+    "merged_at": "2026-03-27T19:28:37Z",
+    "closed_at": "2026-03-27T19:28:37Z",
+    "base_branch": "main",
+    "head_branch": "feat/redis-broadcast",
+    "additions": 402,
+    "deletions": 14,
+    "changed_files": 2,
+    "commits": 1,
+    "cycle_time_h": 0.0525,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 6,
+    "title": "Feat/s3 media CI testing",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": false,
+    "draft": true,
+    "created_at": "2026-03-27T03:29:43Z",
+    "merged_at": null,
+    "closed_at": "2026-03-27T05:51:08Z",
+    "base_branch": "dev",
+    "head_branch": "feat/s3-media",
+    "additions": 3262,
+    "deletions": 521,
+    "changed_files": 54,
+    "commits": 43,
+    "cycle_time_h": null,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 7,
+    "title": "feat: Add WebSocket real-time broadcast architecture for family updates",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-27T03:38:18Z",
+    "merged_at": "2026-03-27T03:40:14Z",
+    "closed_at": "2026-03-27T03:40:14Z",
+    "base_branch": "main",
+    "head_branch": "feat/websocket",
+    "additions": 412,
+    "deletions": 1,
+    "changed_files": 6,
+    "commits": 2,
+    "cycle_time_h": 0.03222222222222222,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 4,
+    "title": "Wake Event Test/GET",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-24T06:04:32Z",
+    "merged_at": "2026-03-24T21:42:35Z",
+    "closed_at": "2026-03-24T21:42:35Z",
+    "base_branch": "main",
+    "head_branch": "feat/wake-event",
+    "additions": 843,
+    "deletions": 38,
+    "changed_files": 6,
+    "commits": 5,
+    "cycle_time_h": 15.634166666666667,
+    "first_review_lag_h": 0.07138888888888889,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-24T06:08:49Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_wake_events.py",
+        "line": 161,
+        "created_at": "2026-03-24T06:08:49Z",
+        "body": "This test module includes many tests for endpoints that currently raise `NotImplementedError` (POST /wake-events, /respond, /verify, /help, /escalation-status). As written, these tests will fail in CI (the workflow runs `pytest tests/`), so they need to be marked `xfail`/skipped until the endpoints land, or split so only implemented endpoints are exercised in this PR."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_wake_events.py",
+        "line": null,
+        "created_at": "2026-03-24T06:08:49Z",
+        "body": "`duplicated_time` is defined for the duplicate test, but the first request uses a fresh `datetime.now(...)` instead of the same `duplicated_time`. That means the second request may not actually be a duplicate and the test can behave incorrectly/flakily. Use the exact same scheduled_time for both requests when asserting idempotency/duplicate behavior.\n```suggestion\n            \"scheduled_time\": duplicated_time,\n```"
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-03-24T21:42:26Z",
+        "body": "Great job! And thank you for completing the tests so quickly so Ben can start working on the wake events with proper tests in place. Everything looks good to me!"
+      }
+    ]
+  },
+  {
+    "number": 5,
+    "title": "chore: set up Celery worker with Redis configuration and update README",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-24T07:41:19Z",
+    "merged_at": "2026-03-24T21:34:18Z",
+    "closed_at": "2026-03-24T21:34:18Z",
+    "base_branch": "main",
+    "head_branch": "chore/celery-worker-setup",
+    "additions": 38,
+    "deletions": 6,
+    "changed_files": 5,
+    "commits": 1,
+    "cycle_time_h": 13.883055555555556,
+    "first_review_lag_h": 0.07111111111111111,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-24T07:45:35Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "app/core/config.py",
+        "line": 13,
+        "created_at": "2026-03-24T07:45:34Z",
+        "body": "`CELERY_BROKER_URL` defaults to localhost, which can silently point production/staging workers at the wrong Redis if the deployment only sets `REDIS_URL` (the previous Celery config). Consider deriving `CELERY_BROKER_URL` from `REDIS_URL` when unset (backward-compatible), or making it required outside local dev and failing fast if it\u2019s not explicitly configured."
+      },
+      {
+        "author": "Copilot",
+        "path": "README.md",
+        "line": 155,
+        "created_at": "2026-03-24T07:45:34Z",
+        "body": "The README now describes `REDIS_URL` as a \u201cWebSocket connection registry\u201d, but there\u2019s no WebSocket/Redis registry usage in the codebase (no `settings.REDIS_URL` references outside `config.py`). This is likely to mislead operators\u2014either update the description to match current usage (or \u201creserved for future WebSocket registry\u201d), or add the missing implementation that actually uses `REDIS_URL` for WebSockets."
+      },
+      {
+        "author": "Copilot",
+        "path": ".env.example",
+        "line": 12,
+        "created_at": "2026-03-24T07:45:34Z",
+        "body": "`.env.example` comments label `REDIS_URL` as the \u201cWebSocket connection registry\u201d, but the current codebase doesn\u2019t use `settings.REDIS_URL` anywhere (no WebSocket registry implementation). Recommend adjusting these comments to reflect current behavior to avoid confusion for new developers and deployments.\n```suggestion\n# Redis / Celery Configuration\nREDIS_URL=redis://localhost:6379/0          # General Redis endpoint (optional / currently unused)\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "README.md",
+        "line": 79,
+        "created_at": "2026-03-24T07:45:34Z",
+        "body": "The worker startup instructions don\u2019t mention that the Celery app imports `settings = Settings()` which requires environment variables like `DATABASE_URL`, `JWT_SECRET`, and `REDIS_URL` to be set (or a `.env` present). Consider adding a short note here pointing back to \u201cSetup\u201d (copy `.env.example` -> `.env`) so `celery -A ... worker` doesn\u2019t fail on missing settings."
+      },
+      {
+        "author": "Copilot",
+        "path": "app/core/config.py",
+        "line": 13,
+        "created_at": "2026-03-24T07:45:35Z",
+        "body": "`REDIS_URL` is still a required setting, but it\u2019s not referenced anywhere in the Python codebase (no `settings.REDIS_URL` usages found). This means processes like the Celery worker will still fail to start unless `REDIS_URL` is provided, even though the worker now uses `CELERY_BROKER_URL`. Consider giving `REDIS_URL` a sensible default or making it optional until there\u2019s code that actually consumes it."
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-03-24T21:34:12Z",
+        "body": "Nice work! The broker_connection_retry_on_startup fix is a nice proactive touch. Approved"
+      }
+    ]
+  },
+  {
+    "number": 1,
+    "title": "Feat/core api auth alarms family stats",
+    "author": "GinoLin980",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-21T03:48:50Z",
+    "merged_at": "2026-03-21T20:46:11Z",
+    "closed_at": "2026-03-21T20:46:11Z",
+    "base_branch": "main",
+    "head_branch": "feat/core-api-auth-alarms-family-stats",
+    "additions": 824,
+    "deletions": 85,
+    "changed_files": 13,
+    "commits": 12,
+    "cycle_time_h": 16.955833333333334,
+    "first_review_lag_h": 0.08055555555555556,
+    "labels": [],
+    "reviews": [
+      {
+        "reviewer": "copilot-pull-request-reviewer[bot]",
+        "state": "COMMENTED",
+        "submitted_at": "2026-03-21T03:53:40Z"
+      }
+    ],
+    "review_comments": [
+      {
+        "author": "Copilot",
+        "path": "tests/conftest.py",
+        "line": 58,
+        "created_at": "2026-03-21T03:53:39Z",
+        "body": "The auth_client fixture now tolerates a pre-existing user (409 -> login), which indicates the test DB can retain committed state across tests/runs. Since the API code commits transactions, the per-test session.rollback() will not reset committed rows, so this fallback can mask isolation issues and create order-dependent tests. Consider ensuring a clean DB per test run (e.g., drop/recreate or truncate tables) or wrapping each test in a SAVEPOINT/nested transaction instead of allowing 409 here."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_family_detail.py",
+        "line": 63,
+        "created_at": "2026-03-21T03:53:39Z",
+        "body": "These debug print(json.dumps(...)) statements add noise to the test suite output and can slow down runs when output capture is disabled. Please remove them (or gate them behind a failing assertion / use pytest's captured output on failure) so committed tests stay clean."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_family_detail.py",
+        "line": 34,
+        "created_at": "2026-03-21T03:53:39Z",
+        "body": "_register_and_auth decides whether to login by inspecting response JSON for a \"token\" key. This is brittle and can hide unexpected failures (e.g., a 422/500 would also lack \"token\" and trigger a login attempt). Prefer branching on explicit status codes (e.g., if register returns 409 then login) and assert expected status codes before reading token/user_id."
+      },
+      {
+        "author": "Copilot",
+        "path": "tests/api/test_families.py",
+        "line": 23,
+        "created_at": "2026-03-21T03:53:40Z",
+        "body": "This helper falls back to login whenever the register response JSON lacks a \"token\" key, which can mask unexpected registration failures (422/500) and make tests harder to diagnose. Consider checking explicit status codes (e.g., 409 -> login) and asserting that register/login returned an expected status before reading resp.json()[\"token\"].\n```suggestion\n    data = resp.json()\n\n    # Successful registration should return a token.\n    if resp.status_code in (200, 201) and \"token\" in data:\n        token = data[\"token\"]\n    # If the user already exists, fall back to login.\n    elif resp.status_code == 409:\n        resp = await client.post(\"/auth/login\", json={\n            \"email\": email,\n            \"password\": \"password123\",\n        })\n        assert resp.status_code == 200, f\"Login failed: {resp.status_code} {resp.text}\"\n        login_data = resp.json()\n        assert \"token\" in login_data, f\"Login response missing token: {login_data}\"\n        token = login_data[\"token\"]\n    else:\n        assert False, f\"Unexpected register response: {resp.status_code} {resp.text}\"\n```"
+      },
+      {
+        "author": "Copilot",
+        "path": "app/services/auth_service.py",
+        "line": 26,
+        "created_at": "2026-03-21T03:53:40Z",
+        "body": "register() does a pre-check for existing email, but doesn't handle the race where two requests register the same email concurrently. In that case the INSERT/COMMIT will raise an IntegrityError on the unique email constraint and currently bubble up as a 500. Consider catching sqlalchemy.exc.IntegrityError around commit/flush and translating it into the same 409 \"Email already registered\" response."
+      }
+    ],
+    "issue_comments": [
+      {
+        "author": "GinoLin980",
+        "created_at": "2026-03-21T03:50:20Z",
+        "body": "also should we make a filter on `get_alarms` with `family_id` as it will now return all the alarms regardless the family"
+      },
+      {
+        "author": "ShaoXiangChien",
+        "created_at": "2026-03-21T20:46:02Z",
+        "body": "Hey Gino, great work on this PR! \r\n\r\nA few things I really liked:\r\n- The single JOIN query in get_family_detail with the correlated subquery for next_alarm_time is exactly the right approach. This will hold up well under morning traffic spikes.\r\n- The UUID validation before DB queries in _assert_membership is a nice touch that prevents unhandled 500s.\r\n- The invite code design comment explaining the alphabet choice and collision math is great engineering documentation. Keep doing this!\r\n- The extra test_family_detail.py with edge cases for delay_minutes and next_alarm_time was beyond what was asked for. Really solid.\r\n\r\nA couple of things to be aware of (I'll handle these in a follow-up branch so you don't need to change anything):  \r\n- The rollback() + continue pattern in create_family can cause session state issues under production connection pooling\r\n- In login, if an OAuth user tries to sign in with email/password, the error message just says \"Invalid credentials\"\r\n\r\nMerging this in. Thanks for the solid work!"
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "title": "refactor: split schemas/models by domain, fix auth and family service\u2026",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-21T21:08:44Z",
+    "merged_at": "2026-03-21T21:18:25Z",
+    "closed_at": "2026-03-21T21:18:25Z",
+    "base_branch": "main",
+    "head_branch": "refactor/split-schemas-models",
+    "additions": 474,
+    "deletions": 342,
+    "changed_files": 26,
+    "commits": 1,
+    "cycle_time_h": 0.1613888888888889,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  },
+  {
+    "number": 2,
+    "title": "refactor: split schemas/models by domain, fix auth and family service\u2026",
+    "author": "ShaoXiangChien",
+    "state": "closed",
+    "merged": true,
+    "draft": false,
+    "created_at": "2026-03-21T20:59:53Z",
+    "merged_at": "2026-03-21T21:02:17Z",
+    "closed_at": "2026-03-21T21:02:17Z",
+    "base_branch": "main",
+    "head_branch": "refactor/split-schemas-models",
+    "additions": 469,
+    "deletions": 338,
+    "changed_files": 26,
+    "commits": 1,
+    "cycle_time_h": 0.04,
+    "first_review_lag_h": null,
+    "labels": [],
+    "reviews": [],
+    "review_comments": [],
+    "issue_comments": []
+  }
+]
